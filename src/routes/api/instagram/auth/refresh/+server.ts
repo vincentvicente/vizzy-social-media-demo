@@ -1,66 +1,29 @@
 import { json } from '@sveltejs/kit';
-import { igGraphTokenGet } from '$lib/server/instagram';
-import { readSession, writeSession } from '$lib/server/instagramSession';
-
-type RefreshResponse = {
-	access_token: string;
-	token_type: 'bearer';
-	expires_in: number;
-};
+import { readSession } from '$lib/server/instagramSession';
 
 /**
  * POST /api/instagram/auth/refresh
  *
- * Calls GET /refresh_access_token to swap the long-lived token for a fresh
- * one with another ~60-day window.
+ * Currently disabled. The IG callback is running in short-token mode (the
+ * long-token / refresh_access_token endpoint requires Business Verification +
+ * Access Verification on the Meta app, which we haven't completed — see the
+ * callback handler for context). Testers should just re-Connect Instagram to
+ * renew the 1-hour short token.
  *
- * IG constraint: the token must be at least 24 hours old. If a freshly issued
- * token is refreshed, IG returns an error and the existing token is unchanged.
- * The server enforces this client-side too (returns 400) so the UI can show a
- * clear message instead of an opaque IG error.
+ * When Meta-side verification clears, restore the previous refresh flow from
+ * git history.
  */
 export async function POST({ cookies }) {
 	const session = readSession(cookies);
 	if (!session) {
 		return json({ error: 'not_connected' }, { status: 401 });
 	}
-
-	const ageMs = Date.now() - session.issued_at;
-	if (ageMs < 24 * 60 * 60 * 1000) {
-		const hoursLeft = Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000));
-		return json(
-			{
-				error: 'token_too_fresh',
-				message: `IG requires the long-lived token to be at least 24h old before refresh. Try again in ~${hoursLeft}h.`
-			},
-			{ status: 400 }
-		);
-	}
-
-	const res = await igGraphTokenGet<RefreshResponse | { error: unknown }>(
-		'/refresh_access_token',
+	return json(
 		{
-			grant_type: 'ig_refresh_token',
-			access_token: session.access_token
-		}
+			error: 'refresh_disabled',
+			message:
+				'IG token refresh is disabled while the app is in short-token mode (1h sessions, pending Meta Business + Access Verification). Click Connect Instagram again to renew.'
+		},
+		{ status: 400 }
 	);
-
-	if (!res.ok || !('access_token' in (res.body as object))) {
-		return json({ step: 'refresh', status: res.status, body: res.body }, { status: res.status });
-	}
-
-	const t = res.body as RefreshResponse;
-	const now = Date.now();
-	writeSession(cookies, {
-		...session,
-		access_token: t.access_token,
-		expires_at: now + t.expires_in * 1000,
-		issued_at: now
-	});
-
-	return json({
-		refreshed: true,
-		expires_at: new Date(now + t.expires_in * 1000).toISOString(),
-		expires_in_seconds: t.expires_in
-	});
 }

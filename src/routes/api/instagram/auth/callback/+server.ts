@@ -1,10 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import {
-	IG_REDIRECT_URI,
-	clientCreds,
-	igGraphTokenGet,
-	igOAuthExchange
-} from '$lib/server/instagram';
+import { IG_REDIRECT_URI, clientCreds, igOAuthExchange } from '$lib/server/instagram';
 import { writeSession } from '$lib/server/instagramSession';
 import { verifyOAuthState } from '$lib/server/session';
 
@@ -12,12 +7,6 @@ type ShortLivedTokenResponse = {
 	access_token: string;
 	user_id: number | string;
 	permissions?: string[];
-};
-
-type LongLivedTokenResponse = {
-	access_token: string;
-	token_type: 'bearer';
-	expires_in: number; // seconds (~60d)
 };
 
 /**
@@ -79,31 +68,20 @@ export async function GET({ url, cookies }) {
 	}
 
 	const short = shortRes.body as ShortLivedTokenResponse;
-
-	// Step 2: short-lived → long-lived token (lives 60 days, refreshable).
-	const longRes = await igGraphTokenGet<LongLivedTokenResponse | { error: unknown }>(
-		'/access_token',
-		{
-			grant_type: 'ig_exchange_token',
-			client_secret: clientCreds.secret,
-			access_token: short.access_token
-		}
-	);
-
-	if (!longRes.ok || !('access_token' in (longRes.body as object))) {
-		throw redirect(
-			303,
-			`/?connect_error=long_token_exchange_failed&error_description=${encodeURIComponent(`HTTP ${longRes.status}: ${JSON.stringify(longRes.body).slice(0, 200)}`)}&platform=instagram`
-		);
-	}
-
-	const long = longRes.body as LongLivedTokenResponse;
 	const now = Date.now();
 
+	// Short-token fallback: Meta currently rejects the long-token exchange at
+	// graph.instagram.com/access_token for apps that haven't completed Business
+	// Verification + Access Verification (returns IGApiException code 100 with
+	// "Object with ID 'access_token' does not exist, ... missing permissions",
+	// regardless of GET vs POST). The short token's 1-hour lifespan is fine
+	// for the internal demo. When Meta-side verification clears, restore the
+	// long-token exchange (see git history for the prior 2-step flow).
+	// Refresh is also disabled in this mode — see /api/instagram/auth/refresh.
 	writeSession(cookies, {
 		user_id: String(short.user_id),
-		access_token: long.access_token,
-		expires_at: now + long.expires_in * 1000,
+		access_token: short.access_token,
+		expires_at: now + 60 * 60 * 1000, // 1h, matches short-token lifespan
 		issued_at: now,
 		scope: (short.permissions ?? []).join(',')
 	});
