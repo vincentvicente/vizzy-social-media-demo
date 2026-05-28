@@ -17,6 +17,9 @@
 	let selectedMedia = $state<any | null>(null);
 	let mediaInsights = $state<any>(null);
 	let accountInsights = $state<any>(null);
+	let audienceData = $state<any>(null);
+	let audienceBreakdown = $state<string>('age');
+	let growthData = $state<any>(null);
 	let loading = $state<string | null>(null);
 
 	onMount(refreshAuthState);
@@ -47,6 +50,8 @@
 		selectedMedia = null;
 		mediaInsights = null;
 		accountInsights = null;
+		audienceData = null;
+		growthData = null;
 	}
 
 	async function refreshToken() {
@@ -103,6 +108,21 @@
 		loading = null;
 	}
 
+	async function fetchAudience(breakdown: 'age' | 'country' | 'gender' | 'city') {
+		audienceBreakdown = breakdown;
+		loading = 'audience';
+		const res = await fetch(`/api/instagram/my/audience?breakdown=${breakdown}`);
+		audienceData = await res.json();
+		loading = null;
+	}
+
+	async function fetchGrowth() {
+		loading = 'growth';
+		const res = await fetch('/api/instagram/my/growth?days=30');
+		growthData = await res.json();
+		loading = null;
+	}
+
 	function fmtCount(n: number | undefined): string {
 		if (n == null) return '—';
 		if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -148,6 +168,14 @@
 					{loading === 'refresh' ? '…' : 'Refresh token'}
 				</button>
 				<button class="btn-link" onclick={disconnect}>Disconnect</button>
+			</div>
+			<div class="row">
+				<button class="btn" onclick={() => fetchAudience('age')} disabled={loading === 'audience'}>Audience: age</button>
+				<button class="btn" onclick={() => fetchAudience('country')} disabled={loading === 'audience'}>Audience: country</button>
+				<button class="btn" onclick={() => fetchAudience('gender')} disabled={loading === 'audience'}>Audience: gender</button>
+				<button class="btn" onclick={fetchGrowth} disabled={loading === 'growth'}>
+					{loading === 'growth' ? '…' : 'Growth (30d)'}
+				</button>
 			</div>
 		</div>
 
@@ -228,6 +256,37 @@
 					{/each}
 				</tbody>
 			</table>
+		{/if}
+
+		{#if audienceData?.data?.[0]?.total_value?.breakdowns}
+			{@const br = audienceData.data[0].total_value.breakdowns[0]}
+			<table class="insights">
+				<thead><tr><th>follower {audienceBreakdown}</th><th>count</th></tr></thead>
+				<tbody>
+					{#each br.results as r}
+						<tr><td>{r.dimension_values?.join(', ') ?? '—'}</td><td>{r.value ?? '—'}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else if audienceData?.error}
+			<div class="error-banner">⚠️ Audience: {audienceData.error.message ?? JSON.stringify(audienceData.error)}</div>
+		{:else if audienceData}
+			<p class="muted">No demographics returned (≥100 followers required).</p>
+		{/if}
+
+		{#if growthData?.data?.[0]?.values?.length}
+			<table class="insights">
+				<thead><tr><th>date</th><th>followers</th></tr></thead>
+				<tbody>
+					{#each growthData.data[0].values as v}
+						<tr><td>{fmtDate(v.end_time)}</td><td>{v.value ?? '—'}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else if growthData?.error}
+			<div class="error-banner">⚠️ Growth: {growthData.error.message ?? JSON.stringify(growthData.error)}</div>
+		{:else if growthData}
+			<p class="muted">No growth data in window (≥100 followers required).</p>
 		{/if}
 	{/if}
 </section>
