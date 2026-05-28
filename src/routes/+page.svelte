@@ -99,6 +99,11 @@
 		font-weight: 700;
 		letter-spacing: 0.5px;
 	}
+	:global(.logo svg) {
+		width: 16px;
+		height: 16px;
+		display: block;
+	}
 	:global(.logo.ig) {
 		background: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888);
 	}

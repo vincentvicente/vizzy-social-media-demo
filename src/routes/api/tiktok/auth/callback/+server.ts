@@ -1,4 +1,4 @@
-import { redirect, error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { ttOAuthFetch, clientCreds, TIKTOK_REDIRECT_URI } from '$lib/server/tiktok';
 import {
   clearOAuthStateCookie,
@@ -40,13 +40,19 @@ export async function GET({ url, cookies }) {
   }
 
   if (!code || !state) {
-    throw error(400, 'missing code or state in callback');
+    throw redirect(
+      303,
+      `/?connect_error=missing_oauth_params&error_description=${encodeURIComponent('Callback hit without code or state — the OAuth flow was interrupted. Start over from Connect TikTok.')}&platform=tiktok`
+    );
   }
 
   const expectedState = readOAuthStateCookie(cookies);
   clearOAuthStateCookie(cookies);
   if (!expectedState || expectedState !== state) {
-    throw error(400, 'state mismatch — possible CSRF, abort');
+    throw redirect(
+      303,
+      `/?connect_error=state_mismatch&error_description=${encodeURIComponent('OAuth state did not match. Likely caused by multiple Connect attempts in different tabs, or refreshing/back during the flow. Close any other tabs and click Connect TikTok once.')}&platform=tiktok`
+    );
   }
 
   const tokenRes = await ttOAuthFetch<TokenResponse | { error: string; error_description: string }>(

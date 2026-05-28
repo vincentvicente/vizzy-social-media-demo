@@ -89,7 +89,7 @@
 
 <section class="platform-card">
 	<header class="ph">
-		<h2><span class="logo yt">YT</span> YouTube</h2>
+		<h2><span class="logo yt"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span> YouTube</h2>
 		<span class="status" class:on={connected}>
 			{me.connected ? me.email : 'Not connected'}
 		</span>

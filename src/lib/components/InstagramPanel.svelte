@@ -117,7 +117,7 @@
 
 <section class="platform-card">
 	<header class="ph">
-		<h2><span class="logo ig">IG</span> Instagram</h2>
+		<h2><span class="logo ig"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg></span> Instagram</h2>
 		<span class="status" class:on={connected}>{connected ? `user ${userId ?? ''}` : 'Not connected'}</span>
 	</header>
 

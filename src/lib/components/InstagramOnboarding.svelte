@@ -11,8 +11,9 @@
 <details class="guide" {open}>
 	<summary>Need access? Get added as an Instagram Tester</summary>
 	<p class="why">
-		The app is in development — only <strong>Business</strong> or <strong>Creator</strong> Instagram
-		accounts added as an <em>Instagram Tester</em> can connect.
+		This is an internal tool. To connect, your IG account needs to be added as an
+		<em>Instagram Tester</em> on our Meta app, <strong>and then</strong> you accept the invite on
+		your phone. Both sides are required.
 	</p>
 
 	<a class="primary-link" href={consoleUrl} target="_blank" rel="noopener">
@@ -21,25 +22,26 @@
 
 	<ol class="steps">
 		<li>
-			Confirm your IG account is <strong>Business</strong> or <strong>Creator</strong> (Instagram app →
-			Settings → <em>Account type and tools</em>).
+			Your IG account must be <strong>Business</strong> or <strong>Creator</strong> (not Personal).
+			Switch via Instagram app → Settings → <em>Account type and tools</em>.
 		</li>
 		<li>
-			Click the button above — Meta will prompt you to log in, then land you on this app's
-			<strong>Roles</strong> page. Find the <em>Instagram testers</em> section → click
-			<strong>Add People</strong> → enter your IG username.
+			<strong>Add yourself in the Meta console</strong> — click the button above; Meta will prompt
+			login then land you on our app's Roles page. Scroll to <em>Instagram testers</em> →
+			<strong>Add People</strong> → enter your IG username (without <code>@</code>) → Save.
+			<br /><em>(Skip this step if a team admin already added you.)</em>
 		</li>
 		<li>
-			<strong>Critical — accept the invite inside the Instagram app</strong>:
-			Settings → <em>Apps and websites</em> → <strong>Tester invites</strong> → Accept.
-			(Easy to miss; without this the connect will fail.)
+			<strong>Accept the invite on your phone</strong> — open Instagram → Settings →
+			<em>Apps and websites</em> → <strong>Tester invites</strong> → Accept the Vizzy invite.
+			<br /><em>Critical: the OAuth fails without this step, even if step 2 is done.</em>
 		</li>
 		<li>Come back here and click <strong>Connect Instagram</strong>.</li>
 	</ol>
 
 	<p class="fallback">
-		No access to the Meta developer console? Send your IG <code>@handle</code> to your team admin —
-		they'll add you in 30 seconds.
+		No access to our Meta developer console? Send your IG <code>@handle</code> to your team admin
+		— they'll do step 2 for you in 30 seconds. <strong>You still need to do step 3 on your phone.</strong>
 	</p>
 </details>
 
