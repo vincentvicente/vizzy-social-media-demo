@@ -74,17 +74,27 @@ export async function igOAuthExchange<T = unknown>(
 }
 
 /**
- * GET against graph.instagram.com for the *unversioned* token endpoints
- * `/access_token` (ig_exchange_token) and `/refresh_access_token`
+ * Token-exchange call against graph.instagram.com for the *unversioned* token
+ * endpoints `/access_token` (ig_exchange_token) and `/refresh_access_token`
  * (ig_refresh_token). These live at the host root, not under /v23.0.
+ *
+ * Method note: Meta's docs document GET for these endpoints, but as of late
+ * 2024 the production endpoints reject GET with
+ *   IGApiException code 100, "Unsupported request - method type: get"
+ * POST with a form-encoded body works (mirrors what api.instagram.com/oauth/
+ * access_token already requires). Function name kept as `igGraphTokenGet` so
+ * call sites don't have to change — it is GET-by-history, POST-by-runtime.
+ * See community report in2code-de/instagram#41.
  */
 export async function igGraphTokenGet<T = unknown>(
 	path: '/access_token' | '/refresh_access_token',
 	params: Record<string, string>
 ): Promise<IGResult<T>> {
-	const url = new URL(`${IG_GRAPH_BASE}${path}`);
-	for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-	const res = await fetch(url, { method: 'GET' });
+	const res = await fetch(`${IG_GRAPH_BASE}${path}`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams(params).toString()
+	});
 	return parseResult<T>(res);
 }
 

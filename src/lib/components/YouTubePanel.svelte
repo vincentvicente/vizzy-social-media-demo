@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import YouTubeOnboarding from './YouTubeOnboarding.svelte';
 
 	type Me =
 		| { connected: false }
@@ -145,6 +146,7 @@
 			<button class="btn-primary yt" onclick={connect}>Connect YouTube</button>
 		</div>
 		<p class="muted">Your Google account must be on the OAuth consent screen's Test users list.</p>
+		<YouTubeOnboarding open={Boolean(initialError)} />
 	{:else}
 		<div class="connected-row">
 			<div class="muted">
