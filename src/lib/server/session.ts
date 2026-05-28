@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes } from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import { SESSION_SECRET } from '$env/static/private';
 
@@ -18,23 +18,15 @@ import { SESSION_SECRET } from '$env/static/private';
  * appended. On-the-wire format: base64url(iv || ciphertext || tag).
  */
 
-const STATE_TTL_SECONDS = 600; // 10 min — covers the user clicking through consent
-
 export type SessionCodec<T> = {
 	writeSession(cookies: Cookies, session: T): void;
 	readSession(cookies: Cookies): T | null;
 	clearSession(cookies: Cookies): void;
-	generateOAuthState(): string;
-	setOAuthStateCookie(cookies: Cookies, state: string): void;
-	readOAuthStateCookie(cookies: Cookies): string | undefined;
-	clearOAuthStateCookie(cookies: Cookies): void;
 };
 
 export function createSessionCodec<T>(opts: {
 	/** Cookie name holding the encrypted session payload, e.g. 'tt_sid'. */
 	sessionCookie: string;
-	/** Cookie name holding the OAuth CSRF state, e.g. 'tt_oauth_state'. */
-	stateCookie: string;
 	/** HKDF info string — make it unique per platform for key separation. */
 	hkdfInfo: string;
 	/** Session cookie max-age in seconds (match the longest-lived token). */
@@ -93,24 +85,53 @@ export function createSessionCodec<T>(opts: {
 		},
 		clearSession(cookies) {
 			cookies.delete(opts.sessionCookie, { path: '/' });
-		},
-		generateOAuthState() {
-			return randomBytes(16).toString('hex');
-		},
-		setOAuthStateCookie(cookies, state) {
-			cookies.set(opts.stateCookie, state, {
-				path: '/',
-				httpOnly: true,
-				sameSite: 'lax',
-				secure: true,
-				maxAge: STATE_TTL_SECONDS
-			});
-		},
-		readOAuthStateCookie(cookies) {
-			return cookies.get(opts.stateCookie);
-		},
-		clearOAuthStateCookie(cookies) {
-			cookies.delete(opts.stateCookie, { path: '/' });
 		}
 	};
+}
+
+/**
+ * Sign a stateless OAuth state token, used as the `state` parameter in each
+ * platform's authorize URL. Unlike a cookie-stored state, this:
+ *   - works across multiple tabs (each click produces an independent token)
+ *   - survives refresh / back-button (no cookie or server-side state)
+ *   - is immune to third-party-cookie blocking and SameSite quirks
+ *
+ * Format: base64url({nonce, exp}) + "." + HMAC-SHA256(SESSION_SECRET, payload)
+ * CSRF protection: forging the signature requires SESSION_SECRET (server-only).
+ */
+export function signOAuthState(ttlSeconds = 600): string {
+	const payload = {
+		nonce: randomBytes(16).toString('hex'),
+		exp: Math.floor(Date.now() / 1000) + ttlSeconds
+	};
+	const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+	const sig = createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
+	return `${payloadB64}.${sig}`;
+}
+
+/**
+ * Verify a stateless OAuth state token. Returns true iff:
+ *   - the signature matches HMAC-SHA256(SESSION_SECRET, payload)
+ *   - the payload's `exp` (unix-seconds) has not passed
+ */
+export function verifyOAuthState(token: string | null | undefined): boolean {
+	if (typeof token !== 'string') return false;
+	const parts = token.split('.');
+	if (parts.length !== 2) return false;
+	const [payloadB64, sig] = parts;
+	const expectedSig = createHmac('sha256', SESSION_SECRET)
+		.update(payloadB64)
+		.digest('base64url');
+	if (sig !== expectedSig) return false;
+	try {
+		const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as {
+			nonce?: string;
+			exp?: number;
+		};
+		if (typeof payload.exp !== 'number') return false;
+		if (payload.exp < Math.floor(Date.now() / 1000)) return false;
+		return true;
+	} catch {
+		return false;
+	}
 }

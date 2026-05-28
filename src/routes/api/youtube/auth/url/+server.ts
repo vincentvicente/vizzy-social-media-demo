@@ -5,7 +5,7 @@ import {
   GOOGLE_SCOPES,
   clientCreds,
 } from '$lib/server/youtube';
-import { generateOAuthState, setOAuthStateCookie } from '$lib/server/youtubeSession';
+import { signOAuthState } from '$lib/server/session';
 
 /**
  * GET /api/youtube/auth/url
@@ -20,9 +20,8 @@ import { generateOAuthState, setOAuthStateCookie } from '$lib/server/youtubeSess
  * access_token, which makes the demo's "refresh" button useless if the user
  * had ever consented before.
  */
-export async function GET({ cookies }) {
-  const state = generateOAuthState();
-  setOAuthStateCookie(cookies, state);
+export async function GET() {
+  const state = signOAuthState();
 
   const params = new URLSearchParams({
     client_id: clientCreds.id,

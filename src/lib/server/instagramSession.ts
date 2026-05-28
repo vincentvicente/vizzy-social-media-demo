@@ -2,7 +2,8 @@ import { createSessionCodec } from './session';
 
 /**
  * Instagram session — encrypted-cookie payload. See ./session.ts for the
- * shared AES-256-GCM codec backing all three platforms.
+ * shared AES-256-GCM codec backing all three platforms. (OAuth state is now
+ * a signed stateless token — see signOAuthState/verifyOAuthState in session.ts.)
  */
 export type InstagramSession = {
 	user_id: string;
@@ -17,17 +18,8 @@ export type InstagramSession = {
 
 const codec = createSessionCodec<InstagramSession>({
 	sessionCookie: 'ig_sess',
-	stateCookie: 'ig_oauth_state',
 	hkdfInfo: 'ig-sess-v1',
 	sessionTtlSeconds: 60 * 60 * 24 * 60 // 60 d, matches long-lived token max
 });
 
-export const {
-	writeSession,
-	readSession,
-	clearSession,
-	generateOAuthState,
-	setOAuthStateCookie,
-	readOAuthStateCookie,
-	clearOAuthStateCookie
-} = codec;
+export const { writeSession, readSession, clearSession } = codec;

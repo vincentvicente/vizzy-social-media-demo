@@ -5,7 +5,7 @@ import {
   TIKTOK_SCOPES,
   clientCreds,
 } from '$lib/server/tiktok';
-import { generateOAuthState, setOAuthStateCookie } from '$lib/server/tiktokSession';
+import { signOAuthState } from '$lib/server/session';
 
 /**
  * GET /api/tiktok/auth/url
@@ -14,9 +14,8 @@ import { generateOAuthState, setOAuthStateCookie } from '$lib/server/tiktokSessi
  * state in an HttpOnly cookie. Frontend redirects the browser to the URL;
  * TikTok will redirect back to /api/tiktok/auth/callback after consent.
  */
-export async function GET({ cookies }) {
-  const state = generateOAuthState();
-  setOAuthStateCookie(cookies, state);
+export async function GET() {
+  const state = signOAuthState();
 
   const params = new URLSearchParams({
     client_key: clientCreds.key,

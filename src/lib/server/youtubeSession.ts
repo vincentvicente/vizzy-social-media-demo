@@ -2,8 +2,8 @@ import { createSessionCodec } from './session';
 
 /**
  * YouTube/Google session — encrypted-cookie payload. See ./session.ts for the
- * shared AES-256-GCM codec. (Was an in-memory Map keyed by a cookie id; moved
- * to an encrypted cookie so sessions survive Vercel's stateless instances.)
+ * shared AES-256-GCM codec. (OAuth state is now a signed stateless token — see
+ * signOAuthState/verifyOAuthState in session.ts.)
  */
 export type YouTubeSession = {
 	/** Google account email (from id_token). Display-only. */
@@ -20,20 +20,11 @@ export type YouTubeSession = {
 
 const codec = createSessionCodec<YouTubeSession>({
 	sessionCookie: 'yt_sid',
-	stateCookie: 'yt_oauth_state',
 	hkdfInfo: 'yt-sess-v1',
 	sessionTtlSeconds: 60 * 60 * 24 * 30
 });
 
-export const {
-	writeSession,
-	readSession,
-	clearSession,
-	generateOAuthState,
-	setOAuthStateCookie,
-	readOAuthStateCookie,
-	clearOAuthStateCookie
-} = codec;
+export const { writeSession, readSession, clearSession } = codec;
 
 /**
  * Decode a JWT id_token payload without verifying the signature.

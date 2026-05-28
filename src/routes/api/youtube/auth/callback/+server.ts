@@ -1,11 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { googleOAuthFetch, clientCreds, GOOGLE_REDIRECT_URI } from '$lib/server/youtube';
-import {
-  clearOAuthStateCookie,
-  decodeIdTokenPayload,
-  readOAuthStateCookie,
-  writeSession,
-} from '$lib/server/youtubeSession';
+import { decodeIdTokenPayload, writeSession } from '$lib/server/youtubeSession';
+import { verifyOAuthState } from '$lib/server/session';
 
 type TokenResponse = {
   access_token: string;
@@ -46,12 +42,10 @@ export async function GET({ url, cookies }) {
     );
   }
 
-  const expectedState = readOAuthStateCookie(cookies);
-  clearOAuthStateCookie(cookies);
-  if (!expectedState || expectedState !== state) {
+  if (!verifyOAuthState(state)) {
     throw redirect(
       303,
-      `/?connect_error=state_mismatch&error_description=${encodeURIComponent('OAuth state did not match. Likely caused by multiple Connect attempts in different tabs, or refreshing/back during the flow. Close any other tabs and click Connect YouTube once.')}&platform=youtube`
+      `/?connect_error=state_mismatch&error_description=${encodeURIComponent('OAuth state is invalid or expired (>10 min between click and complete). Start over from Connect YouTube.')}&platform=youtube`
     );
   }
 

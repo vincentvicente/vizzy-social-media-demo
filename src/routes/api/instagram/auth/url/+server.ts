@@ -5,7 +5,7 @@ import {
 	IG_SCOPES,
 	clientCreds
 } from '$lib/server/instagram';
-import { generateOAuthState, setOAuthStateCookie } from '$lib/server/instagramSession';
+import { signOAuthState } from '$lib/server/session';
 
 /**
  * GET /api/instagram/auth/url
@@ -17,9 +17,8 @@ import { generateOAuthState, setOAuthStateCookie } from '$lib/server/instagramSe
  * `enable_fb_login=0` and `force_authentication=1` are the recommended
  * defaults for Instagram Login (vs. Facebook Login) per Meta's docs.
  */
-export async function GET({ cookies }) {
-	const state = generateOAuthState();
-	setOAuthStateCookie(cookies, state);
+export async function GET() {
+	const state = signOAuthState();
 
 	const params = new URLSearchParams({
 		client_id: clientCreds.id,

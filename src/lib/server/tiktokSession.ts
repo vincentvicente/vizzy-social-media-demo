@@ -2,8 +2,8 @@ import { createSessionCodec } from './session';
 
 /**
  * TikTok session — encrypted-cookie payload. See ./session.ts for the shared
- * AES-256-GCM codec. (Was an in-memory Map keyed by a cookie id; moved to an
- * encrypted cookie so sessions survive Vercel's stateless/serverless instances.)
+ * AES-256-GCM codec. (OAuth state is now a signed stateless token — see
+ * signOAuthState/verifyOAuthState in session.ts.)
  */
 export type TikTokSession = {
 	open_id: string;
@@ -18,17 +18,8 @@ export type TikTokSession = {
 
 const codec = createSessionCodec<TikTokSession>({
 	sessionCookie: 'tt_sid',
-	stateCookie: 'tt_oauth_state',
 	hkdfInfo: 'tt-sess-v1',
 	sessionTtlSeconds: 60 * 60 * 24 * 30 // 30 d; underlying refresh_token lasts 365 d
 });
 
-export const {
-	writeSession,
-	readSession,
-	clearSession,
-	generateOAuthState,
-	setOAuthStateCookie,
-	readOAuthStateCookie,
-	clearOAuthStateCookie
-} = codec;
+export const { writeSession, readSession, clearSession } = codec;
